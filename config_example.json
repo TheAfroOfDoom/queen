@@ -1,14 +1,19 @@
 {
-	"prefix": "#",
-	"token": "bot_token",
-	"commandChannels": [
-		"discord_channel_id"
-	],
-	"guildId": "albion_guild_id",
-	"serverId": "discord_server_id",
 	"aliases": [
 		"aitangent|144208625907269632",
 		"theafroofdoom|167762537989799937",
 		"albion_username|discord_user_id"
-	]
+	],
+	"callProperties": {
+		"numKills": 10,
+		"interval": 10000,
+		"maxAge": "2 hours"
+	},
+	"commandChannels": [
+		"discord_channel_id"
+	],
+	"guildId": "albion_guild_id",
+	"prefix": "#",
+	"serverId": "discord_server_id",
+	"token": "discord_bot_token"
 }
