@@ -5,7 +5,6 @@ jspm_packages/
 # Testing
 tempCodeRunnerFile.js
 testing/
-run.bat
 
 # Security
 config.json
