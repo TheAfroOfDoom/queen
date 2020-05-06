@@ -10,7 +10,6 @@
 const DEBUG = false;
 
 // Libraries
-const Albion = require('albion-api');
 const Discord = require('discord.js');
 const fs = require('fs');
 const moment = require('moment');
@@ -119,9 +118,45 @@ function updateConsole(arg){
     process.stdout.clearLine(1);    // Only clear to the right of the cursor
 }
 
+// Modified function from npm i albion-api
+function baseRequest(uri, cb) {
+    var url = `${BASE_URL}${uri}`;
+    request(url, function (error, response, body) {
+        debug(`Url: ${url} statusCode: ${response && response.statusCode}`);
+        let badResponses = [404, 502, 504]  // Not found, Bad Gateway, Timed out
+        if(error || (response && badResponses.includes(response.statusCode))) {
+            cb(error || response);
+        }
+        try {
+            data = JSON.parse(body);
+            cb(null, data);
+        }
+        catch(err) {
+            return;
+        }
+    });
+}
+
+// Modified function from npm i albion-api
+function getRecentEvents(opts, cb) {
+    opts = opts || {};
+    query = "?";
+    if(opts.limit) {
+        query += `limit=${opts.limit}&`;
+    }
+    if(opts.offset) {
+        query += `offset=${opts.offset}&`;
+    }
+    if(opts.guildId) {
+        query += `guildId=${opts.guildId}&`;
+    }
+    // https://gameinfo.albiononline.com/api/gameinfo/events?limit=51&offset=0&guildId=OB1jeKVfTLSpqfAxg3us8w
+    baseRequest(`/events` + query, cb);
+}
+
 const getRecentEventsPromise = (...args) => {
   return new Promise ((resolve, reject) => {
-    Albion.getRecentEvents(...args, (error, data) => {
+    getRecentEvents(...args, (error, data) => {
         if(error) return reject(error)
         resolve(data);
     })
@@ -137,10 +172,13 @@ async function importKills(amount) {
         data = fs.readFileSync('./testing/killboard.json').toString();
         killData = JSON.parse(data);
     } else {
+        // This is first API call upon running
         if(apiCall == undefined) {
             apiCall = new APICall(moment());
             //console.info("apiCall undef");
         }
+
+        // Try to call API
         killData = await getRecentEventsPromise(opts).then(data => {
             apiCall.pass();
             apiCallQueue.push(apiCall);
