@@ -18,7 +18,6 @@ const moment = require('moment');
 // Config values
 var {prefix, token, commandChannels, guildId, serverId, aliases, callProperties} = require('./config.json');    // NOTE: cP.interval is in ms
 callProperties.maxAge = callProperties.maxAge.split(" ");     // '2 hours' => ['2', 'hours']
-callProperties.maxAge[0] = Number(callProperties.maxAge[0]);  // '2' => 2
 
 // Classes
 class Kill {
