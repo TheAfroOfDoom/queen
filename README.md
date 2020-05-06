@@ -8,7 +8,7 @@ Used some trial-and-error and references to https://www.tools4albion.com/api_inf
 
 Sound clips not included in repo because they're in a parent folder `./../sounds` to keep files clean on my PC, since the original version of the bot was coded in Python.
 
-Uses node.js and some Promises and shit
+Uses node.js and some Promises and stuff
 
 ```
 (parent dir)
