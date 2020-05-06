@@ -22,7 +22,7 @@ async function playAudio(client, args, channel) {
 
     // If the bot is already in a voice channel in the guild, return
     if(client.voice.connections.has(channel.guild.id)) {
-        console.info('Tried to join a channel while already in one.');
+        //console.info('Tried to join a channel while already in one.');
         return;
     }
 
