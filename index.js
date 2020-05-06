@@ -15,11 +15,10 @@ const Discord = require('discord.js');
 const fs = require('fs');
 const moment = require('moment');
 
-// Constants
-const NUM_KILLS = 10;
-const INTERVAL = 5000;
-const OLDEST_API_CALL_UNIT = 'hours';
-const OLDEST_API_CALL = moment.duration(24, OLDEST_API_CALL_UNIT);
+// Config values
+var {prefix, token, commandChannels, guildId, serverId, aliases, callProperties} = require('./config.json');    // NOTE: cP.interval is in ms
+callProperties.maxAge = callProperties.maxAge.split(" ");     // '2 hours' => ['2', 'hours']
+callProperties.maxAge[0] = Number(callProperties.maxAge[0]);  // '2' => 2
 
 // Classes
 class Kill {
@@ -36,25 +35,29 @@ class APICall {
     constructor(moment, duration) {
         this.moment = moment;
         this.duration = duration;
+        //console.info(`\n${this.moment.format("mm:ss.SS")}`);
     }
 
-    succeed() { // Uptime (positive)
+    pass() { // Uptime (positive)
         this.duration = moment.duration(moment().diff(this.moment));
+        //console.info(`\npass: ${moment().format("mm:ss.SS")}`);
     }
 
     fail() {    // Downtime (negative)
         this.duration = moment.duration(this.moment.diff(moment()));
+        //console.info(`\nfail: ${moment().format("mm:ss.SS")}`);
     }
 
-    isOld() {
-        return moment.duration(moment().diff(this.moment, OLDEST_API_CALL_UNIT)) > OLDEST_API_CALL;
+    isExpired() {
+        return( moment.duration(moment().diff(this.moment, callProperties.maxAge[1])) > 
+                moment.duration(callProperties.maxAge[0], callProperties.maxAge[1]));
     }
 }
 
 // Methods
 function calculateUptime() {
     // Remove old API calls from queue first
-    while(apiCallQueue.length != 0 && apiCallQueue[0].isOld()) {
+    while(apiCallQueue.length != 0 && apiCallQueue[0].isExpired()) {
         apiCallQueue.shift();
     }
 
@@ -65,16 +68,25 @@ function calculateUptime() {
     
     // Iterate through queue and add uptime and downtime
     uptime = moment.duration(0), totalTime = moment.duration(0);
+    //u = 0, d = 0;
     for(call of apiCallQueue) {
         if(call.duration > 0) { // API uptime
             uptime.add(call.duration);
             totalTime.add(call.duration);
+            //u += call.duration.as('milliseconds');
         } else {                // API downtime
-            totalTime.add(call.duration.clone().abs());
+            totalTime.subtract(call.duration);
+            //d += call.duration.as('milliseconds');
         }
     }
+    
+    //console.info(`\nu: ${u}`);
+    //console.info(`d: ${d}`);
+
     // Return percentage
-    return `${Math.round(100 * (uptime / totalTime))}`.padStart(3, " ") + `% API uptime`;
+    s = `${Math.round(100 * (uptime / totalTime))}`.padStart(3, " ") + `% API uptime`;
+    //s += ` | time till maxInt: ${Number.MAX_SAFE_INTEGER - totalTime.as('milliseconds')} ms`;
+    return s;
 }
 
 function updateConsole(arg){
@@ -126,9 +138,12 @@ async function importKills(amount) {
         data = fs.readFileSync('./testing/killboard.json').toString();
         killData = JSON.parse(data);
     } else {
-        apiCall = new APICall(moment());
+        if(apiCall == undefined) {
+            apiCall = new APICall(moment());
+            //console.info("apiCall undef");
+        }
         killData = await getRecentEventsPromise(opts).then(data => {
-            apiCall.succeed();
+            apiCall.pass();
             apiCallQueue.push(apiCall);
             return data;
         })
@@ -136,8 +151,9 @@ async function importKills(amount) {
             apiCall.fail();
             apiCallQueue.push(apiCall);
             updateConsole('apiFail');
-            return undefined; // Can't work if we reach an error
+            return undefined;   // Can't work if we reach an error
         })
+        apiCall = new APICall(moment());    // Also keep track of time in between calls. Just include it with the next successful/failed call.
     }
 
     if(killData == undefined) return undefined;
@@ -168,7 +184,7 @@ async function importKills(amount) {
 }
 
 async function getInitialKillList() {
-    return await importKills(NUM_KILLS).then(data => {
+    return await importKills(callProperties.numKills).then(data => {
       return data;
   })
 }
@@ -234,7 +250,7 @@ async function refresh() {
         // Repeat
         setTimeout(function() {
             refresh();
-        }, INTERVAL)
+        }, callProperties.interval)
 
         return;
     }
@@ -250,7 +266,7 @@ async function refresh() {
         // Repeat
         setTimeout(function() {
             refresh();
-        }, INTERVAL)
+        }, callProperties.interval)
 
         return;
     }
@@ -263,7 +279,7 @@ async function refresh() {
         // Repeat
         setTimeout(function() {
             refresh();
-        }, INTERVAL)
+        }, callProperties.interval)
 
         return;
     }
@@ -273,7 +289,7 @@ async function refresh() {
 
         //console.info(latestKill.id);
         // Otherwise, update list of kills
-        newKills = await importKills(NUM_KILLS).then(data => {
+        newKills = await importKills(callProperties.numKills).then(data => {
             return data;
         })
         .catch(error => {
@@ -291,7 +307,7 @@ async function refresh() {
     // Repeat
     setTimeout(function() {
         refresh();
-    }, INTERVAL)
+    }, callProperties.interval)
 }
 
 async function biteTheDust(kills) {
@@ -312,7 +328,7 @@ async function biteTheDust(kills) {
         index += 1;
 
         // If we're pulling from a recentKills list > 10, need this line if there are at least 10 new kills
-        if(index >= NUM_KILLS) {
+        if(index >= callProperties.numKills) {
             break;
         }
     }
@@ -379,11 +395,10 @@ async function biteTheDust(kills) {
     mostRecentKill = kills[0];
 }
 
-const {prefix, token, commandChannels, guildId, serverId, aliases} = require('./config.json');
-
 // Initialize client
 var client = new Discord.Client();
-var apiCallQueue = [];  // Keeping track of API uptime
+var apiCallQueue = [];      // Keeping track of API uptime
+var apiCall = undefined;    // Globally accessible apiCall
 
 // Dynamically search and add commands in `commands` folder
 client.commands = new Discord.Collection();
@@ -397,7 +412,7 @@ client.on('ready', () => {
     console.info(`Logged in as ${client.user.tag}.`);
     setTimeout(function() {
         refresh();
-    }, INTERVAL)
+    }, callProperties.interval)
 });
 
 client.on('message', message => {
