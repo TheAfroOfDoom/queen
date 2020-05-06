@@ -103,9 +103,9 @@ function updateConsole(arg){
         default:
             throw "Bad argument in updateConsole().";
     }
-    //process.stdout.clearLine();
     process.stdout.cursorTo(0);
     process.stdout.write(`[${t}] ${s} ${uptime}${b}`);
+    process.stdout.clearLine(1);    // Only clear to the right of the cursor
 }
 
 const getRecentEventsPromise = (...args) => {
