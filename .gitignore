@@ -59,3 +59,10 @@ typings/
 
 # next.js build output
 .next
+
+# Testing
+tempCodeRunnerFile.js
+testing/
+
+# Security
+config.json

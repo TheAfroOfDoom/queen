@@ -1,30 +1,24 @@
-# How to Build Your First Discord Bot with Node.js
+# Queen
 
-Michiel Mulders shows you how to install and set up a new Discord bot, which is made easier thanks to the API offered by the Discord.js package.
+A Discord bot for the Albion Online guild Inglorious Pixels that plays a soundbite from Queen's "Another One Bites the Dust" in Discord voice chat when a guild member gets a kill.
 
-Link to article on SitePoint: [https://www.sitepoint.com/discord-bot-node-js/](https://www.sitepoint.com/discord-bot-node-js/)
+Dynamically adjusts intensity of the clip depending on how much fame (exp) the kill was.
 
-## Requirements
+Used some trial-and-error and references to https://www.tools4albion.com/api_info.php and a modified version of https://github.com/psykzz/albion-api.
 
-- [Node.js](http://nodejs.org/)
-- [Discord](https://discordapp.com/) account
+Sound clips not included in repo because they're in a parent folder `./../sounds` to keep files clean on my PC, since the original version of the bot was coded in Python.
 
-## Installation Steps (if applicable)
+Uses node.js and some Promises and shit
 
-1. Clone repo
-2. Run `npm install`
-3. Add Discord credentials in a `.env` file
-3. Run `node index.js`
-4. Interact with your Discord bot via your web browser
+```
+(parent dir)
+./
+./js
+./py
+./sounds
+...
+```
 
-## License
+---
 
-SitePoint's code archives and code examples are licensed under the MIT license.
-
-Copyright © 2020 SitePoint
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+![the man the myth the legend TheRealTL](https://i.imgur.com/G2JRPhE.png)

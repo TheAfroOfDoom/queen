@@ -1,0 +1,14 @@
+{
+	"prefix": "#",
+	"token": "bot token",
+	"commandChannels": [
+		"discord_channel_id"
+	],
+	"guildId": "albion_guild_id",
+	"serverId": "discord_server_id",
+	"aliases": [
+		"aitangent|144208625907269632",
+		"theafroofdoom|167762537989799937",
+		"albion_username|discord_user_id"
+	]
+}
