@@ -1,6 +1,6 @@
 {
 	"prefix": "#",
-	"token": "bot token",
+	"token": "bot_token",
 	"commandChannels": [
 		"discord_channel_id"
 	],
