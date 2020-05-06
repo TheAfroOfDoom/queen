@@ -1,6 +1,6 @@
 /*/
  *  Jordan Williams / TheAfroOfDoom
- *  
+ *
  * A fun bot for Albion Online guilds that will pop into a Discord Voice channel
  * whenever a new kill is detected and play a soundbite from Queen's
  * "Another One Bites the Dust".
@@ -8,8 +8,18 @@
 
 // Debug mode
 const DEBUG = false;
+
+// Libraries
+const Albion = require('albion-api');
+const Discord = require('discord.js');
+const fs = require('fs');
+const moment = require('moment');
+
+// Constants
 const NUM_KILLS = 10;
 const INTERVAL = 5000;
+const OLDEST_API_CALL_UNIT = 'hours';
+const OLDEST_API_CALL = moment.duration(24, OLDEST_API_CALL_UNIT);
 
 // Classes
 class Kill {
@@ -18,14 +28,85 @@ class Kill {
       this.fame = fame;
       this.id = id;
       this.killer = killer;
-
       // this.victim = victim;
     }
 }
 
+class APICall {
+    constructor(moment, duration) {
+        this.moment = moment;
+        this.duration = duration;
+    }
+
+    succeed() { // Uptime (positive)
+        this.duration = moment.duration(moment().diff(this.moment));
+    }
+
+    fail() {    // Downtime (negative)
+        this.duration = moment.duration(this.moment.diff(moment()));
+    }
+
+    isOld() {
+        return moment.duration(moment().diff(this.moment, OLDEST_API_CALL_UNIT)) > OLDEST_API_CALL;
+    }
+}
+
 // Methods
-var moment = require('moment');
-const Albion = require('albion-api');
+function calculateUptime() {
+    // Remove old API calls from queue first
+    while(apiCallQueue.length != 0 && apiCallQueue[0].isOld()) {
+        apiCallQueue.shift();
+    }
+
+    // Empty queue means no calculation can be done
+    if(apiCallQueue.length == 0) {
+        return "  0% API uptime";
+    }
+    
+    // Iterate through queue and add uptime and downtime
+    uptime = moment.duration(0), totalTime = moment.duration(0);
+    for(call of apiCallQueue) {
+        if(call.duration > 0) { // API uptime
+            uptime.add(call.duration);
+            totalTime.add(call.duration);
+        } else {                // API downtime
+            totalTime.add(call.duration.clone().abs());
+        }
+    }
+    // Return percentage
+    return `${Math.round(100 * (uptime / totalTime))}`.padStart(3, " ") + `% API uptime`;
+}
+
+function updateConsole(arg){
+    // Calculate API Uptime
+    uptime = calculateUptime();
+
+    b = '';
+    s = '';
+    t = `${moment().format('YYYY-MM-DDTHH:mm:ss')}`;
+    switch(arg) {
+        case 'apiFail':
+            s = 'API failure.';
+            break;
+
+        case 'noNewKills':
+            s = 'No new kills.';
+            break;
+
+        case 'newKills':
+            s = 'New kills!';
+            // TODO(jordan): Not sure if this breaks the one-line stuff or not.
+            // Probably need to clear this line and the one below it every time to prevent clutter from building?
+            //b = '\nAnother one bites the dust...';
+            break;
+
+        default:
+            throw "Bad argument in updateConsole().";
+    }
+    //process.stdout.clearLine();
+    process.stdout.cursorTo(0);
+    process.stdout.write(`[${t}] ${s} ${uptime}${b}`);
+}
 
 const getRecentEventsPromise = (...args) => {
   return new Promise ((resolve, reject) => {
@@ -37,21 +118,24 @@ const getRecentEventsPromise = (...args) => {
 }
 
 async function importKills(amount) {
-  
     let opts = {};
     opts.limit = amount;
     opts.guildId = guildId;
 
     if(DEBUG) {
-        const fs = require('fs');
         data = fs.readFileSync('./testing/killboard.json').toString();
         killData = JSON.parse(data);
     } else {
+        apiCall = new APICall(moment());
         killData = await getRecentEventsPromise(opts).then(data => {
+            apiCall.succeed();
+            apiCallQueue.push(apiCall);
             return data;
         })
         .catch(error => {
-            console.info(`Failed to grab from API at ${moment().format()}.`);
+            apiCall.fail();
+            apiCallQueue.push(apiCall);
+            updateConsole('apiFail');
             return undefined; // Can't work if we reach an error
         })
     }
@@ -121,11 +205,10 @@ function matchesAliases(name, members) {
 
 function sort(subList) {
     // https://www.geeksforgeeks.org/python-sort-list-according-second-element-sublist/
-    // Code to sort the lists using the second element of sublists 
-    // Inplace way to sort, use of third variable 
-
+    // Code to sort the lists using the second element of sublists
+    // Inplace way to sort, use of third variable
     l = subList.length
-    for(i of [...Array(l).keys()]) { 
+    for(i of [...Array(l).keys()]) {
         for(j of [...Array(l - i - 1).keys()]) {
             if(subList[j][1] > subList[j + 1][1]) {
                 tempo = subList[j];
@@ -138,7 +221,6 @@ function sort(subList) {
 }
 
 async function refresh() {
-
     // Grab latest kill
     latestKill = await importKills(1).then(data => {
         return data;
@@ -148,7 +230,7 @@ async function refresh() {
     })
 
     // Catch bad latestKill
-    if(latestKill == undefined) {    
+    if(latestKill == undefined) {
         // Repeat
         setTimeout(function() {
             refresh();
@@ -177,7 +259,7 @@ async function refresh() {
         console.info(`${latestKill.id}`);
 
     if(latestKill.id == mostRecentKill.id) {
-        console.info("[" + moment().format() + "] - No new kills.");
+        updateConsole('noNewKills');
         // Repeat
         setTimeout(function() {
             refresh();
@@ -189,7 +271,7 @@ async function refresh() {
     // If it is not the same as mostRecentKill, continue
     if(latestKill.id != mostRecentKill.id) {
 
-        console.info(latestKill.id);
+        //console.info(latestKill.id);
         // Otherwise, update list of kills
         newKills = await importKills(NUM_KILLS).then(data => {
             return data;
@@ -201,11 +283,11 @@ async function refresh() {
         // If the mostRecentKill is not the same as the last time, go bite the dust
         if(newKills != undefined) {
             kills = newKills;
-            console.info("[" + moment().format() + "] - New kills!");
+            updateConsole('newKills');
             await biteTheDust(kills);
         }
     }
-    
+
     // Repeat
     setTimeout(function() {
         refresh();
@@ -213,8 +295,6 @@ async function refresh() {
 }
 
 async function biteTheDust(kills) {
-    console.info("Another one bites the dust...");
-
     // Sum total fame since last check and get list of killers' names
     totalFame = 0;
     killers = [];
@@ -247,7 +327,7 @@ async function biteTheDust(kills) {
     // lowestFame
     else if(totalFame <= 5000)
         src = '0';
-    // lowerFame    
+    // lowerFame
     else if(totalFame <= 25000)
         src = '1';
     // lowFame
@@ -268,7 +348,7 @@ async function biteTheDust(kills) {
 
     // Sort killers by fame
     killers = sort(killers)
-    
+
     // Join channel with the killer with the most fame
     // if they are not in a voice channel, join the one with the most people
     // if all are empty, do not join a voice channel
@@ -302,9 +382,8 @@ async function biteTheDust(kills) {
 const {prefix, token, commandChannels, guildId, serverId, aliases} = require('./config.json');
 
 // Initialize client
-const fs = require('fs');
-const Discord = require('discord.js');
 var client = new Discord.Client();
+var apiCallQueue = [];  // Keeping track of API uptime
 
 // Dynamically search and add commands in `commands` folder
 client.commands = new Discord.Collection();
@@ -322,7 +401,7 @@ client.on('ready', () => {
 });
 
 client.on('message', message => {
-  
+
   if (!message.content.startsWith(prefix) || message.author.bot) return;
 
   // `files` or `discord-setup-discussion` channel
@@ -332,8 +411,7 @@ client.on('message', message => {
     const command = args.shift().toLowerCase();
     //console.info(`Called command: ${command}`);
 
-    if(DEBUG)
-    {
+    if(DEBUG) {
       //console.info(args);
     }
 
