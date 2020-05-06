@@ -7,6 +7,7 @@
   "license": "ISC",
   "dependencies": {
     "@discordjs/uws": "^10.149.0",
+    "debug": "^4.1.1",
     "discord.js": "github:discordjs/discord.js",
     "dotenv": "^8.2.0",
     "moment": "^2.25.3",

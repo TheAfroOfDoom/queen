@@ -10,13 +10,18 @@
 const DEBUG = false;
 
 // Libraries
+const debug = require('debug')//('AlbionAPI');
 const Discord = require('discord.js');
 const fs = require('fs');
 const moment = require('moment');
+const request = require('request');
 
 // Config values
 var {prefix, token, commandChannels, guildId, serverId, aliases, callProperties} = require('./config.json');    // NOTE: cP.interval is in ms
 callProperties.maxAge = callProperties.maxAge.split(" ");     // '2 hours' => ['2', 'hours']
+
+// Constants
+BASE_URL = `https://gameinfo.albiononline.com/api/gameinfo`;
 
 // Classes
 class Kill {
