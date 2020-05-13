@@ -15,10 +15,17 @@ const Discord = require('discord.js');
 const fs = require('fs');
 const moment = require('moment');
 const request = require('request');
+const readline = require('readline');
+const _ = require('underscore');
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
 
 // Config values
-var {prefix, token, commandChannels, guildId, serverId, aliases, callProperties} = require('./config.json');    // NOTE: cP.interval is in ms
-callProperties.maxAge = callProperties.maxAge.split(" ");     // '2 hours' => ['2', 'hours']
+var config = require('./config.json');    // NOTE: cP.interval is in ms
+config.callProperties.maxAge = config.callProperties.maxAge.split(" ");     // '2 hours' => ['2', 'hours']
 
 // Constants
 BASE_URL = `https://gameinfo.albiononline.com/api/gameinfo`;
@@ -52,8 +59,8 @@ class APICall {
     }
 
     isExpired() {
-        return( moment.duration(moment().diff(this.moment, callProperties.maxAge[1])) > 
-                moment.duration(callProperties.maxAge[0], callProperties.maxAge[1]));
+        return( moment.duration(moment().diff(this.moment, config.callProperties.maxAge[1])) > 
+                moment.duration(config.callProperties.maxAge[0], config.callProperties.maxAge[1]));
     }
 }
 
@@ -92,7 +99,7 @@ function calculateUptime() {
     return s;
 }
 
-function updateConsole(arg){
+function updateConsole(arg) {
     // Calculate API Uptime
     uptime = calculateUptime();
 
@@ -121,6 +128,19 @@ function updateConsole(arg){
     process.stdout.cursorTo(0);
     process.stdout.write(`[${t}] ${s} ${uptime}${b}`);
     process.stdout.clearLine(1);    // Only clear to the right of the cursor
+}
+
+function updateSettingsDisplay() {
+    p = rl.getCursorPos();
+    process.stdout.cursorTo(0, 4);
+    process.stdout.clearLine();
+    process.stdout.write(`Call properties: n: ${config.callProperties.numKills} kills | int: ${config.callProperties.interval}ms | max: ${config.callProperties.maxAge[0] + " " + config.callProperties.maxAge[1]}`);
+    
+    if(p.rows > 4) {
+        process.stdout.cursorTo(p.cols, p.rows);  // Reset to kills line
+    } else {
+        process.stdout.cursorTo(0, 5);
+    }
 }
 
 // Modified function from npm i albion-api
@@ -171,7 +191,7 @@ const getRecentEventsPromise = (...args) => {
 async function importKills(amount) {
     let opts = {};
     opts.limit = amount;
-    opts.guildId = guildId;
+    opts.guildId = config.guildId;
 
     if(DEBUG) {
         data = fs.readFileSync('./testing/killboard.json').toString();
@@ -226,9 +246,12 @@ async function importKills(amount) {
 }
 
 async function getInitialKillList() {
-    return await importKills(callProperties.numKills).then(data => {
+    return await importKills(config.callProperties.numKills).then(data => {
       return data;
   })
+  .catch(error => {
+      return undefined;   // Can't work if we reach an error
+  });
 }
 
 function printKills(kills) {
@@ -241,7 +264,7 @@ function printKills(kills) {
 
 function matchesAliases(name, members) {
     // Check all the aliases
-    for(alias of aliases) {
+    for(alias of config.aliases) {
         alias = alias.split("|");
         // If the username is found
         if(name == alias[0]) {
@@ -292,7 +315,7 @@ async function refresh() {
         // Repeat
         setTimeout(function() {
             refresh();
-        }, callProperties.interval)
+        }, config.callProperties.interval)
 
         return;
     }
@@ -302,13 +325,16 @@ async function refresh() {
         // Grab initial kill list upon bot startup
         kills = await getInitialKillList().then(data => {
             return data;
+        })
+        .catch(error => {
+            return undefined;   // Can't work if we reach an error
         });
         mostRecentKill = kills[0];
 
         // Repeat
         setTimeout(function() {
             refresh();
-        }, callProperties.interval)
+        }, config.callProperties.interval)
 
         return;
     }
@@ -321,7 +347,7 @@ async function refresh() {
         // Repeat
         setTimeout(function() {
             refresh();
-        }, callProperties.interval)
+        }, config.callProperties.interval)
 
         return;
     }
@@ -331,7 +357,7 @@ async function refresh() {
 
         //console.info(latestKill.id);
         // Otherwise, update list of kills
-        newKills = await importKills(callProperties.numKills).then(data => {
+        newKills = await importKills(config.callProperties.numKills).then(data => {
             return data;
         })
         .catch(error => {
@@ -349,7 +375,7 @@ async function refresh() {
     // Repeat
     setTimeout(function() {
         refresh();
-    }, callProperties.interval)
+    }, config.callProperties.interval)
 }
 
 async function biteTheDust(kills) {
@@ -370,7 +396,7 @@ async function biteTheDust(kills) {
         index += 1;
 
         // If we're pulling from a recentKills list > 10, need this line if there are at least 10 new kills
-        if(index >= callProperties.numKills) {
+        if(index >= config.callProperties.numKills) {
             break;
         }
     }
@@ -414,7 +440,7 @@ async function biteTheDust(kills) {
     // Check through every server the bot is in
     for(guild of client.guilds.cache) {
         // Inglorious Pixels
-        if(guild[0].toString() == serverId) {
+        if(guild[0].toString() == config.serverId) {
             // Check each killer in the list, with most fame first
             for(killer of killers) {
                 // Check each voice channel
@@ -452,34 +478,46 @@ for (const file of commandFiles) {
 
 client.on('ready', () => {
     console.info(`Logged in as ${client.user.tag}.`);
+    console.info(`[ t0: ${moment().format().slice(0, -6)} ]`);
+    updateSettingsDisplay();
+
     setTimeout(function() {
         refresh();
-    }, callProperties.interval)
+    }, config.callProperties.interval)
 });
 
-client.on('message', message => {
+client.on('message', async message => {
 
-  if (!message.content.startsWith(prefix) || message.author.bot) return;
+  if (!message.content.startsWith(config.prefix) || message.author.bot) return;
 
   // `files` or `discord-setup-discussion` channel
-  if(commandChannels.includes(message.channel.id.toString())) {
+  if(config.commandChannels.includes(message.channel.id.toString())) {
 
-    const args = message.content.slice(prefix.length).split(/ +/);
-    const command = args.shift().toLowerCase();
-    //console.info(`Called command: ${command}`);
-
-    if(DEBUG) {
-      //console.info(args);
+    let args = message.content.slice(config.prefix.length).split(/ +/);
+    const commandName = args.shift().toLowerCase();
+    
+    if (!client.commands.has(commandName)) {
+        return;
     }
-
-    if (!client.commands.has(command)) {
-      return;
-    }
+    const command = client.commands.get(commandName);
 
     try {
-      client.commands.get(command).execute(message, args, client);
+        await command.execute(message, args, client);    // Execute the command
+        
+        // Catch stuff done inside command if necessary
+        if(command.args.length > 0 && command.args[0] == null) {
+            args = command.args;
+            if(args[1] == 'reload') {
+                if(!_.isEqual(config, command.config)) { // If new configuration settings
+                    config = command.config;
+                    updateSettingsDisplay();
+                }
+                command.reloadMessage.edit("Reloaded!");
+            }
+        }
+
     } catch (error) {
-      console.error(error);
+        console.error(error);
     }
   }
 });
@@ -487,4 +525,4 @@ client.on('message', message => {
 var kills = undefined;
 var mostRecentKill = undefined;
 
-client.login(token);
+client.login(config.token);

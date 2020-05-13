@@ -12,6 +12,7 @@
     "dotenv": "^8.2.0",
     "moment": "^2.25.3",
     "opusscript": "0.0.7",
-    "request": "^2.88.2"
+    "request": "^2.88.2",
+    "underscore": "^1.10.2"
   }
 }
