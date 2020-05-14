@@ -3,7 +3,7 @@ const Discord = require('discord.js');
 module.exports = {
     name: 'play',
     aliases: ['p'],
-    description: 'Test audio files',
+    description: 'Play audio files',
     async execute(x, args, client) {
         if(x instanceof Discord.Message)
             playAudio(client, args, x.member.voice.channel);
