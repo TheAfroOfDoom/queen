@@ -193,16 +193,25 @@ async function importKills(amount) {
     opts.limit = amount;
     opts.guildId = config.guildId;
 
-    if(DEBUG) {
-        data = fs.readFileSync('./testing/killboard.json').toString();
-        killData = JSON.parse(data);
-    } else {
-        // This is first API call upon running
-        if(apiCall == undefined) {
-            apiCall = new APICall(moment());
-            //console.info("apiCall undef");
-        }
+    // This is first API call upon running
+    if(apiCall == undefined) {
+        apiCall = new APICall(moment());
+        //console.info("apiCall undef");
+    }
 
+    if(DEBUG) {
+        try {
+            data = fs.readFileSync('./testing/killboard.json').toString();
+            killData = JSON.parse(data);
+            apiCall.pass();
+            apiCallQueue.push(apiCall);
+        } catch {
+            apiCall.fail();
+            apiCallQueue.push(apiCall);
+            updateConsole('apiFail');
+            killData = undefined;
+        }
+    } else {
         // Try to call API
         killData = await getRecentEventsPromise(opts).then(data => {
             apiCall.pass();
@@ -264,10 +273,9 @@ function printKills(kills) {
 
 function matchesAliases(name, members) {
     // Check all the aliases
-    for(alias of config.aliases) {
-        alias = alias.split("|");
+    for(alias of Object.keys(config.aliases)) {
         // If the username is found
-        if(name == alias[0]) {
+        if(name == alias) {
             // Make list of discord IDs in VC
             memIDs = []
             for(member of members) {
@@ -275,7 +283,7 @@ function matchesAliases(name, members) {
             }
 
             // If the user's discord ID is found in the list of member IDs currently in voice chat
-            if(memIDs.includes(alias[1])) {
+            if(memIDs.includes(config.aliases[alias])) {
                 return true;
             }
             break;  // We already matched current name to alias
@@ -339,8 +347,9 @@ async function refresh() {
         return;
     }
 
-    if(DEBUG)
-        console.info(`${latestKill.id}`);
+    if(DEBUG) {
+        //console.info(`${latestKill.id}`);
+    }
 
     if(latestKill.id == mostRecentKill.id) {
         updateConsole('noNewKills');
@@ -495,17 +504,15 @@ client.on('message', async message => {
 
     let args = message.content.slice(config.prefix.length).split(/ +/);
     const commandName = args.shift().toLowerCase();
-    
-    if (!client.commands.has(commandName)) {
-        return;
-    }
-    const command = client.commands.get(commandName);
+    const command = client.commands.get(commandName) || client.commands.find(cmd => cmd.aliases && cmd.aliases.includes(commandName));
 
+    // If command does not exist
+    if (!command) return;
     try {
         await command.execute(message, args, client);    // Execute the command
         
         // Catch stuff done inside command if necessary
-        if(command.args.length > 0 && command.args[0] == null) {
+        if(command.args != undefined && command.args.length > 0 && command.args[0] == null) {
             args = command.args;
             if(args[1] == 'reload') {
                 if(!_.isEqual(config, command.config)) { // If new configuration settings
