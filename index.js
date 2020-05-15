@@ -519,7 +519,9 @@ client.on('message', async message => {
                     config = command.config;
                     updateSettingsDisplay();
                 }
-                command.reloadMessage.edit("Reloaded!");
+                if(command.reloadMessage != undefined) {
+                    command.reloadMessage.edit("Reloaded!");
+                }
             }
         }
 
