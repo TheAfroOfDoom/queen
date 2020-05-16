@@ -2,7 +2,7 @@
 	"aliases": {
 		"aitangent": "144208625907269632",
 		"theafroofdoom": "167762537989799937",
-		"albion_username": "discord_user_id"
+		"ALBION_USERNAME": "DISCORD_USER_ID"
 	},
 	"callProperties": {
 		"numKills": 10,
@@ -10,10 +10,10 @@
 		"maxAge": "4 hours"
 	},
 	"commandChannels": [
-		"discord_channel_id"
+		"DISCORD_CHANNEL_ID"
 	],
-	"guildId": "albion_guild_id",
+	"guildId": "ALBION_GUILD_ID",
 	"prefix": "//",
-	"serverId": "discord_server_id",
-	"token": "discord_bot_token"
+	"serverId": "DISCORD_GUILD_ID",
+	"token": "DISCORD_BOT_TOKEN"
 }
