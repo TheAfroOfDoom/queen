@@ -12,7 +12,6 @@ module.exports = {
     reload() {
         delete require.cache[require.resolve('./../config.json')];  
         module.exports.config = require('./../config.json');
-        module.exports.config.callProperties.maxAge = module.exports.config.callProperties.maxAge.split(" ");     // '2 hours' => ['2', 'hours']
         module.exports.args = [null, "reload"];
     },
     async writeConfig(config) {
@@ -22,9 +21,6 @@ module.exports = {
             aliasesOrdered[key] = config.aliases[key];
         });
         config.aliases = aliasesOrdered;
-
-        // Merge config.callProperties.maxAge back into a string
-        config.callProperties.maxAge = `${config.callProperties.maxAge[0]} ${config.callProperties.maxAge[1]}`;
 
         // Write to disk
         const fs = require('fs');

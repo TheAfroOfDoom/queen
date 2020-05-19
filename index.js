@@ -24,8 +24,7 @@ const rl = readline.createInterface({
 });
 
 // Config values
-var config = require('./config.json');    // NOTE: cP.interval is in ms
-config.callProperties.maxAge = config.callProperties.maxAge.split(" ");     // '2 hours' => ['2', 'hours']
+var config = require('./config.json');    // NOTE: callProperties.interval is in ms
 
 // Constants
 BASE_URL = `https://gameinfo.albiononline.com/api/gameinfo`;
@@ -59,8 +58,11 @@ class APICall {
     }
 
     isExpired() {
-        return( moment.duration(moment().diff(this.moment, config.callProperties.maxAge[1])) > 
-                moment.duration(config.callProperties.maxAge[0], config.callProperties.maxAge[1]));
+        let cma = config.callProperties.maxAge.split(" ");
+        let time = cma[0];
+        let unit = cma[1];
+        return( moment.duration(moment().diff(this.moment, unit)) > 
+                moment.duration(time, unit));
     }
 }
 
@@ -134,7 +136,7 @@ function updateSettingsDisplay() {
     p = rl.getCursorPos();
     process.stdout.cursorTo(0, 4);
     process.stdout.clearLine();
-    process.stdout.write(`Call properties: n: ${config.callProperties.numKills} kills | int: ${config.callProperties.interval}ms | max: ${config.callProperties.maxAge[0] + " " + config.callProperties.maxAge[1]}`);
+    process.stdout.write(`Call properties: n: ${config.callProperties.numKills} kills | int: ${config.callProperties.interval}ms | max: ${config.callProperties.maxAge}`);
     
     if(p.rows > 4) {
         process.stdout.cursorTo(p.cols, p.rows);  // Reset to kills line
