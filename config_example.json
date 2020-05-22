@@ -12,8 +12,10 @@
 	"commandChannels": [
 		"DISCORD_CHANNEL_ID"
 	],
-	"guildId": "ALBION_GUILD_ID",
+	"guildID": "ALBION_GUILD_ID",
 	"prefix": "//",
-	"serverId": "DISCORD_GUILD_ID",
+	"serverIDs": [
+		"DISCORD_GUILD_ID"
+	],
 	"token": "DISCORD_BOT_TOKEN"
 }

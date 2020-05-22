@@ -174,8 +174,8 @@ function getRecentEvents(opts, cb) {
     if(opts.offset) {
         query += `offset=${opts.offset}&`;
     }
-    if(opts.guildId) {
-        query += `guildId=${opts.guildId}&`;
+    if(opts.guildID) {
+        query += `guildId=${opts.guildID}&`;
     }
     // https://gameinfo.albiononline.com/api/gameinfo/events?limit=51&offset=0&guildId=OB1jeKVfTLSpqfAxg3us8w
     baseRequest(`/events` + query, cb);
@@ -193,7 +193,7 @@ const getRecentEventsPromise = (...args) => {
 async function importKills(amount) {
     let opts = {};
     opts.limit = amount;
-    opts.guildId = config.guildId;
+    opts.guildID = config.guildID;
 
     // This is first API call upon running
     if(apiCall == undefined) {
@@ -451,7 +451,7 @@ async function biteTheDust(kills) {
     // Check through every server the bot is in
     for(guild of client.guilds.cache) {
         // Inglorious Pixels
-        if(guild[0].toString() == config.serverId) {
+        if(config.serverIDs.includes(guild[0].toString())) {
             // Check each killer in the list, with most fame first
             for(killer of killers) {
                 // Check each voice channel
