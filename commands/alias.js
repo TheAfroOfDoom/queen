@@ -27,7 +27,7 @@ async function badArgument(pos, msg, args, client, path = "", scold = true) {
     x = path.split(" "), s = `\n\n` + path;
     switch(pos) {
         case 0:
-            s = s.slice(1, s.length);
+            s = s.slice(1);
             s += `<`;
             tree = [
                 'list',
@@ -40,7 +40,7 @@ async function badArgument(pos, msg, args, client, path = "", scold = true) {
             for(t of tree) {
                 s += `${t}|`;
             }
-            s = s.slice(0, s.length - 1) + '>`';   // slice() => Remove extra '|'
+            s = s.slice(0, -1) + '>`';   // slice() => Remove extra '|'
             break;
     
         case 1:
@@ -59,7 +59,7 @@ async function badArgument(pos, msg, args, client, path = "", scold = true) {
                     s += ` <albionUsername> <discordID|discordMention>\``;
                     switch(args[0]) {
                         case 'badAlbion':
-                            s = `\`\`\`\nAlbion usernames must only contain alphanumeric characters, dashes, and underscores. Must be between 3-16 characters long.\`\`\`` + s.slice(1, s.length);
+                            s = `\`\`\`\nAlbion usernames must only contain alphanumeric characters, dashes, and underscores. Must be between 3-16 characters long.\`\`\`` + s.slice(1);
                             break;
 
                         case 'noAlbion':
@@ -106,14 +106,14 @@ async function list(msg, args, client) {
     config = require("./../config.json");
 
     s = "```\n";
-    for (const [albionUsername, discordID] of Object.entries(config.aliases)) {
-        s += `${albionUsername}: ${discordID}`;
+    for (const [albionUsername, discordId] of Object.entries(config.aliases)) {
+        s += `${albionUsername}: ${discordId}`;
 
         // This is super laggy. \/
         /*
         if(args.length > 1 && (args[1] == 'tags' || args[1] == 'tag')) {
             try {   // While testing, Discord user might not be in guild anymore.
-                userTag = (await msg.guild.members.fetch(discordID)).user.tag;
+                userTag = (await msg.guild.members.fetch(discordId)).user.tag;
                 s += ` (${userTag})`;
             } catch {}
         }
@@ -158,9 +158,9 @@ async function add(msg, args, client) {
     // Ensure Discord user exists in Discord server:
     discordUser = args[2].replace("!", "").replace("<@", "").replace(">", "");
     try {
-        regexID = new RegExp(`^\\d{0,18}$`);            // Discord ID format
+        regexId = new RegExp(`^\\d{0,18}$`);            // Discord Id format
 
-        if(regexID.test(discordUser)) {
+        if(regexId.test(discordUser)) {
             discordUser = (await msg.guild.members.fetch(discordUser)).user;
         } else {
             throw "Didn't match regex";
@@ -198,11 +198,11 @@ async function get(msg, args, client) {
     x = player.replace("!", "").replace("<@", "").replace(">", "");
 
     s = '', found = 0, discordUser = undefined;
-    for(const [albionUsername, discordID] of Object.entries(config.aliases)) {
-        if(player == albionUsername || player == discordID || x == discordID) {
+    for(const [albionUsername, discordId] of Object.entries(config.aliases)) {
+        if(player == albionUsername || player == discordId || x == discordId) {
             found++;
-            discordUser = discordID;
-            s += `\t\`<${albionUsername}: ${discordID}>\`\n`;
+            discordUser = discordId;
+            s += `\t\`<${albionUsername}: ${discordId}>\`\n`;
         }
     }
     if(found > 0) {
@@ -235,11 +235,11 @@ async function remove(msg, args, client) {
     x = player.replace("!", "").replace("<@", "").replace(">", "");
 
     s = '', found = 0, discordUser = undefined;
-    for(const [albionUsername, discordID] of Object.entries(config.aliases)) {
-        if(player == albionUsername || player == discordID || x == discordID) {
+    for(const [albionUsername, discordId] of Object.entries(config.aliases)) {
+        if(player == albionUsername || player == discordId || x == discordId) {
             found++;
-            discordUser = discordID;
-            s += `\t\`<${albionUsername}: ${discordID}>\`\n`;
+            discordUser = discordId;
+            s += `\t\`<${albionUsername}: ${discordId}>\`\n`;
 
             // Remove alias from list
             delete config.aliases[albionUsername];
@@ -293,9 +293,9 @@ async function set(msg, args, client) {
     // Ensure Discord user exists in Discord server:
     discordUser = args[2].replace("!", "").replace("<@", "").replace(">", "");
     try {
-        regexID = new RegExp(`^\\d{0,18}$`);            // Discord ID format
+        regexId = new RegExp(`^\\d{0,18}$`);            // Discord ID format
 
-        if(regexID.test(discordUser)) {
+        if(regexId.test(discordUser)) {
             discordUser = (await msg.guild.members.fetch(discordUser)).user;
         } else {
             throw "Didn't match regex";
