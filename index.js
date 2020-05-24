@@ -10,11 +10,9 @@
 const DEBUG = false;
 
 // Libraries
-const debug = require('debug')//('AlbionAPI');
 const Discord = require('discord.js');
 const fs = require('fs');
 const moment = require('moment');
-const request = require('request');
 const readline = require('readline');
 const _ = require('underscore');
 
@@ -24,10 +22,7 @@ const rl = readline.createInterface({
 });
 
 // Config values
-var config = require('./config.json');    // NOTE: callProperties.interval is in ms
-
-// Constants
-BASE_URL = `https://gameinfo.albiononline.com/api/gameinfo`;
+var config = require('./config.json');
 
 // Classes
 class Kill {
@@ -119,9 +114,6 @@ function updateConsole(arg) {
 
         case 'newKills':
             s = 'New kills!';
-            // TODO(jordan): Not sure if this breaks the one-line stuff or not.
-            // Probably need to clear this line and the one below it every time to prevent clutter from building?
-            //b = '\nAnother one bites the dust...';
             break;
 
         default:
@@ -145,56 +137,7 @@ function updateSettingsDisplay() {
     }
 }
 
-// Modified function from npm i albion-api
-function baseRequest(uri, cb) {
-    var url = `${BASE_URL}${uri}`;
-    request(url, function (error, response, body) {
-        debug(`Url: ${url} statusCode: ${response && response.statusCode}`);
-        let badResponses = [404, 502, 504]  // Not found, Bad Gateway, Timed out
-        if(error || (response && badResponses.includes(response.statusCode))) {
-            cb(error || response);
-        }
-        try {
-            data = JSON.parse(body);
-            cb(null, data);
-        }
-        catch(err) {
-            return;
-        }
-    });
-}
-
-// Modified function from npm i albion-api
-function getRecentEvents(opts, cb) {
-    opts = opts || {};
-    query = "?";
-    if(opts.limit) {
-        query += `limit=${opts.limit}&`;
-    }
-    if(opts.offset) {
-        query += `offset=${opts.offset}&`;
-    }
-    if(opts.guildID) {
-        query += `guildId=${opts.guildID}&`;
-    }
-    // https://gameinfo.albiononline.com/api/gameinfo/events?limit=51&offset=0&guildId=OB1jeKVfTLSpqfAxg3us8w
-    baseRequest(`/events` + query, cb);
-}
-
-const getRecentEventsPromise = (...args) => {
-  return new Promise ((resolve, reject) => {
-    getRecentEvents(...args, (error, data) => {
-        if(error) return reject(error)
-        resolve(data);
-    })
-  })
-}
-
 async function importKills(amount) {
-    let opts = {};
-    opts.limit = amount;
-    opts.guildID = config.guildID;
-
     // This is first API call upon running
     if(apiCall == undefined) {
         apiCall = new APICall(moment());
@@ -215,18 +158,20 @@ async function importKills(amount) {
         }
     } else {
         // Try to call API
-        killData = await getRecentEventsPromise(opts).then(data => {
+        callAPIModule = client.commands.get("get");
+        args = `events -limit=${amount} -guildId=${config.guildId}`;
+        killData = await callAPIModule.execute(undefined, args, client);
+
+        if(killData) {
             apiCall.pass();
             apiCallQueue.push(apiCall);
-            return data;
-        })
-        .catch(error => {
+        } else {
             apiCall.fail();
             apiCallQueue.push(apiCall);
             updateConsole('apiFail');
-            return undefined;   // Can't work if we reach an error
-        })
-        apiCall = new APICall(moment());    // Also keep track of time in between calls. Just include it with the next successful/failed call.
+        }
+        // Also keep track of time in between calls. Just include it with the next successful/failed call.
+        apiCall = new APICall(moment());
     }
 
     if(killData == undefined) return undefined;
@@ -257,12 +202,7 @@ async function importKills(amount) {
 }
 
 async function getInitialKillList() {
-    return await importKills(config.callProperties.numKills).then(data => {
-      return data;
-  })
-  .catch(error => {
-      return undefined;   // Can't work if we reach an error
-  });
+    return await importKills(config.callProperties.numKills);
 }
 
 function printKills(kills) {
@@ -279,13 +219,13 @@ function matchesAliases(name, members) {
         // If the username is found
         if(name == alias) {
             // Make list of discord IDs in VC
-            memIDs = []
+            memIds = []
             for(member of members) {
-                memIDs.push(member.id.toString());
+                memIds.push(member.id.toString());
             }
 
             // If the user's discord ID is found in the list of member IDs currently in voice chat
-            if(memIDs.includes(config.aliases[alias])) {
+            if(memIds.includes(config.aliases[alias])) {
                 return true;
             }
             break;  // We already matched current name to alias
@@ -312,13 +252,9 @@ function sort(subList) {
 }
 
 async function refresh() {
+    try {
     // Grab latest kill
-    latestKill = await importKills(1).then(data => {
-        return data;
-    })
-    .catch(error => {
-        return undefined; // Can't work if we reach an error
-    })
+    latestKill = await importKills(1);
 
     // Catch bad latestKill
     if(latestKill == undefined) {
@@ -333,13 +269,11 @@ async function refresh() {
     // If have not grabbed mostRecentKill yet, set it to latestKill
     if(mostRecentKill == undefined) {
         // Grab initial kill list upon bot startup
-        kills = await getInitialKillList().then(data => {
-            return data;
-        })
-        .catch(error => {
-            return undefined;   // Can't work if we reach an error
-        });
-        mostRecentKill = kills[0];
+        kills = await getInitialKillList();
+        try {
+            mostRecentKill = kills[0];
+        } catch {
+        }
 
         // Repeat
         setTimeout(function() {
@@ -368,12 +302,7 @@ async function refresh() {
 
         //console.info(latestKill.id);
         // Otherwise, update list of kills
-        newKills = await importKills(config.callProperties.numKills).then(data => {
-            return data;
-        })
-        .catch(error => {
-            return undefined; // Can't work if we reach an error
-        })
+        newKills = await importKills(config.callProperties.numKills);
 
         // If the mostRecentKill is not the same as the last time, go bite the dust
         if(newKills != undefined) {
@@ -387,6 +316,7 @@ async function refresh() {
     setTimeout(function() {
         refresh();
     }, config.callProperties.interval)
+} catch(e) {console.log(e)}
 }
 
 async function biteTheDust(kills) {
@@ -451,7 +381,7 @@ async function biteTheDust(kills) {
     // Check through every server the bot is in
     for(guild of client.guilds.cache) {
         // Inglorious Pixels
-        if(config.serverIDs.includes(guild[0].toString())) {
+        if(config.serverIds.includes(guild[0].toString())) {
             // Check each killer in the list, with most fame first
             for(killer of killers) {
                 // Check each voice channel
@@ -468,7 +398,7 @@ async function biteTheDust(kills) {
     }
 
     /*
-    // TODO(jordan): If no killers are in the voice channel, bite the dust in the one with the most people
+    // REVIEW(jordan): If no killers are in the voice channel, bite the dust in the one with the most people
     await playAudio(client, src, client.getChannel(566413371608662039))
     */
     mostRecentKill = kills[0];
@@ -489,7 +419,7 @@ for (const file of commandFiles) {
 
 client.on('ready', () => {
     console.info(`Logged in as ${client.user.tag}.`);
-    console.info(`[ t0: ${moment().format().slice(0, -6)} ]`);
+    console.info(`[t0: ${moment().format().slice(0, -6)}]`);
     updateSettingsDisplay();
 
     setTimeout(function() {
