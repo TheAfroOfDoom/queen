@@ -2,7 +2,7 @@ const Discord = require('discord.js');
 
 module.exports = {
     name: 'play',
-    aliases: ['p'],
+    aliases: [],
     description: 'Play audio files',
     async execute(x, args, client) {
         if(x instanceof Discord.Message)
@@ -65,13 +65,11 @@ async function playAudio(client, args, channel) {
     }
 
     // Join the channel if the author is in one
-    // NOTE(jordan): Change which is commented for global killboard vs. IP killboard
     channel.join().then(connection => {
 
         const dispatcher = connection.play(path);
         dispatcher.on("speaking", speaking => {
             if(!speaking) {
-                //setTimeout(function(){ channel.leave(); }, 100);
                 channel.leave();
             }
         });
