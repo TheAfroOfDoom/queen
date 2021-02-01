@@ -2,6 +2,8 @@
 
 A Discord bot for the Albion Online guild Inglorious Pixels that plays a soundbite from Queen's "Another One Bites the Dust" in Discord voice chat when a guild member gets a kill.
 
+[![Showcase](https://img.youtube.com/vi/zFF9b76-SwE/0.jpg)](https://youtu.be/zFF9b76-SwE)
+
 Dynamically adjusts intensity of the clip depending on how much fame (exp) the kill was.
 
 Keeps track of the Albion API uptime since it's down so often.
