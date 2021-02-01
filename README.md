@@ -11,6 +11,8 @@ Keeps track of the Albion API uptime since it's down so often.
 
 Used some trial-and-error and references to https://www.tools4albion.com/api_info.php and a modified version of https://github.com/psykzz/albion-api.
 
+This project's API and Crystal League cross-referencing capabilities was extended upon in [albstat](https://github.com/aidant19/albstat).
+
 Sound clips not included in repo because they're in a parent folder `./../sounds` to keep files clean on my PC, since the original version of the bot was coded in Python.
 
 Uses node.js and some Promises and stuff
