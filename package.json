@@ -15,7 +15,7 @@
     "opusscript": "0.0.7",
     "pastebin-js": "^1.0.4",
     "request": "^2.88.2",
-    "underscore": "^1.10.2",
+    "underscore": "^1.12.1",
     "util": "^0.12.3"
   }
 }
