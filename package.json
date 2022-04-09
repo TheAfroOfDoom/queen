@@ -11,7 +11,7 @@
     "discord.js": "github:discordjs/discord.js",
     "dotenv": "^8.2.0",
     "fs": "0.0.1-security",
-    "moment": "^2.25.3",
+    "moment": "^2.29.2",
     "opusscript": "0.0.7",
     "pastebin-js": "^1.0.4",
     "request": "^2.88.2",
